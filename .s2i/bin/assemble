@@ -1,0 +1,21 @@
+#!/bin/bash
+
+REPO_URL="${SOURCE_URL:-}"
+REPO_REF="${SOURCE_REF:-master}"
+PLATFORM="${BUILD_PLATFORM:-darwin/amd64}"
+
+if [[ "${REPO_URL}" == "" ]]; then
+   echo "Please specify a repository URL with SOURCE_URL"
+   exit 1
+fi
+
+mkdir -p /go/src/github.com/openshift/origin
+unset OS_VERSION_FILE
+cd /go/src/github.com/openshift/origin
+echo "Cloning OpenShift origin repository from ${REPO_URL}, branch ${REPO_REF}"
+git clone "${REPO_URL}" .
+git checkout "${REPO_REF}"
+
+source hack/lib/init.sh
+OS_BUILD_PLATFORMS=("${PLATFORM}")
+os::build::build_binaries "cmd/oc"

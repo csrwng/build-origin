@@ -1,0 +1,4 @@
+#!/bin/bash
+
+cd /go/src/github.com/openshift/origin/_output/local/bin
+python -m SimpleHTTPServer

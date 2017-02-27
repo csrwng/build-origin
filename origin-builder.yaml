@@ -1,0 +1,220 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: origin-builder
+parameters:
+- name: SOURCE_URL
+  description: The URL of the fork of OpenShift to build
+  displayName: Source URL
+  required: true
+- name: SOURCE_REF
+  description: The Ref of the fork of OpenShift to build
+  displayName: Source REF
+  required: true
+  value: master
+- name: PLATFORM
+  description: "The platform of the oc binary to build. Valid values: linux/amd64, darwin/amd64, windows/amd64"
+  displayName: "Platform"
+  value: darwin/amd64
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      app: build-origin
+    name: build-origin
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: build-origin:latest
+    runPolicy: Serial
+    source:
+      git:
+        uri: https://github.com/csrwng/build-origin.git
+      type: Git
+    strategy:
+      sourceStrategy:
+        env:
+        - name: SOURCE_URL
+          value: "${SOURCE_URL}"
+        - name: SOURCE_REF
+          value: "${SOURCE_REF}"
+        - name: PLATFORM
+          value: "${PLATFORM}"
+        from:
+          kind: ImageStreamTag
+          name: origin-release-builder:latest
+      type: Source
+    triggers:
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      app: origin-release-builder
+    name: origin-release-builder
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: origin-release-builder:latest
+    runPolicy: Serial
+    source:
+      dockerfile: |-
+        FROM origin-release
+        EXPOSE 8000
+        LABEL io.openshift.s2i.scripts-url "https://raw.githubusercontent.com/csrwng/build-origin/master/.s2i/bin"
+        RUN chown -R 1001 /go /openshifttmp
+        USER 1001
+        ENV GIT_COMMITTER_NAME="Developer" GIT_COMMITTER_EMAIL="dev@example.com"
+        CMD ["/bin/bash", "-c", "while(true); do date; sleep 30; done"]
+      type: Docker
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: origin-release:golang-1.8
+      type: Docker
+    triggers:
+    - type: ConfigChange
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: build-origin
+    name: build-origin
+  spec:
+    replicas: 1
+    selector:
+      app: build-origin
+      deploymentconfig: build-origin
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+        labels:
+          app: build-origin
+          deploymentconfig: build-origin
+      spec:
+        containers:
+        - image: " "
+          imagePullPolicy: Always
+          name: build-origin
+          ports:
+          - containerPort: 8000
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 1
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 1
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - build-origin
+        from:
+          kind: ImageStreamTag
+          name: build-origin:latest
+      type: ImageChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: build-origin
+    name: build-origin
+  spec: {}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: origin-release
+    name: origin-release
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: openshift/origin-release:golang-1.8
+      importPolicy: {}
+      name: golang-1.8
+      referencePolicy:
+        type: Source
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: origin-release-builder
+    name: origin-release-builder
+  spec: {}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: build-origin
+  spec:
+    port:
+      targetPort: 8000-tcp
+    to:
+      kind: Service
+      name: build-origin
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: build-origin
+    name: build-origin
+  spec:
+    ports:
+    - name: 8000-tcp
+      port: 8000
+      protocol: TCP
+      targetPort: 8000
+    selector:
+      app: build-origin
+      deploymentconfig: build-origin
+    sessionAffinity: None
+    type: ClusterIP
