@@ -2,7 +2,7 @@
 
 REPO_URL="${SOURCE_URL:-}"
 REPO_REF="${SOURCE_REF:-master}"
-PLATFORM="${BUILD_PLATFORM:-darwin/amd64}"
+PLATFORM="${PLATFORM:-darwin/amd64}"
 
 if [[ "${REPO_URL}" == "" ]]; then
    echo "Please specify a repository URL with SOURCE_URL"
