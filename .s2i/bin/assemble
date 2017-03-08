@@ -3,6 +3,7 @@
 REPO_URL="${SOURCE_URL:-}"
 REPO_REF="${SOURCE_REF:-master}"
 PLATFORM="${PLATFORM:-darwin/amd64}"
+PR_NUMBER="${PR:-}"
 
 if [[ "${REPO_URL}" == "" ]]; then
    echo "Please specify a repository URL with SOURCE_URL"
@@ -14,7 +15,12 @@ unset OS_VERSION_FILE
 cd /go/src/github.com/openshift/origin
 echo "Cloning OpenShift origin repository from ${REPO_URL}, branch ${REPO_REF}"
 git clone "${REPO_URL}" .
-git checkout "${REPO_REF}"
+if [[ ! -z "${PR_NUMBER}" ]]; then
+	git fetch origin pull/${PR_NUMBER}/head:local
+	git checkout local
+else
+    git checkout "${REPO_REF}"
+fi
 
 source hack/lib/init.sh
 OS_BUILD_PLATFORMS=("${PLATFORM}")
