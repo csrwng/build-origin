@@ -7,6 +7,7 @@ parameters:
   description: The URL of the fork of OpenShift to build
   displayName: Source URL
   required: true
+  value: https://github.com/openshift/origin.git
 - name: SOURCE_REF
   description: The Ref of the fork of OpenShift to build
   displayName: Source REF
@@ -16,6 +17,11 @@ parameters:
   description: "The platform of the oc binary to build. Valid values: linux/amd64, darwin/amd64, windows/amd64"
   displayName: "Platform"
   value: darwin/amd64
+- name: PR
+  description: The PR number to build. If populated, SOURCE_REF is ignored
+  displayName: PR Number
+  value: ""
+  required: false
 objects:
 - apiVersion: v1
   kind: BuildConfig
@@ -42,6 +48,8 @@ objects:
           value: "${SOURCE_REF}"
         - name: PLATFORM
           value: "${PLATFORM}"
+        - name: PR
+          value: "${PR}"
         from:
           kind: ImageStreamTag
           name: origin-release-builder:latest
