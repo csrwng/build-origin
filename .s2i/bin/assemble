@@ -23,6 +23,8 @@ else
     git checkout "${REPO_REF}"
 fi
 
-source hack/lib/init.sh
 OS_BUILD_PLATFORMS=("${PLATFORM}")
+source hack/lib/init.sh
+readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp"
+readonly OS_GOFLAGS_TAGS_$(os::build::platform_arch)="gssapi"
 os::build::build_binaries "cmd/oc"
