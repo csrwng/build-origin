@@ -13,6 +13,7 @@ fi
 mkdir -p /go/src/github.com/openshift/origin
 unset OS_VERSION_FILE
 cd /go/src/github.com/openshift/origin
+go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
 echo "Cloning OpenShift origin repository from ${REPO_URL}, branch ${REPO_REF}"
 git clone "${REPO_URL}" .
 if [[ ! -z "${PR_NUMBER}" ]]; then
