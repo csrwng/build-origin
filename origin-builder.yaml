@@ -76,7 +76,7 @@ objects:
         FROM origin-release
         EXPOSE 8000
         LABEL io.openshift.s2i.scripts-url "https://raw.githubusercontent.com/csrwng/build-origin/master/.s2i/bin"
-        RUN chown -R 1001 /go /openshifttmp
+        RUN chown -R 1001 /go /tmp
         USER 1001
         ENV GIT_COMMITTER_NAME="Developer" GIT_COMMITTER_EMAIL="dev@example.com"
         CMD ["/bin/bash", "-c", "while(true); do date; sleep 30; done"]
